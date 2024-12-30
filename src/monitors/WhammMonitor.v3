@@ -148,7 +148,8 @@ class WhammMonitor(whamm: (string, Module), toLink: Vector<(string, Module)>) ex
 				}
 				return CallResult.OK(vals[0]);
 			}
-			Throw(throw) => {
+			Throw(thrown) => {
+				printThrowable(thrown);
 				err.at(cv.parser.decoder).WhammProbeError("whamm probe", "static function threw exception");
 				return CallResult.Fail;
 			}
@@ -415,7 +416,24 @@ class WhammMonitor(whamm: (string, Module), toLink: Vector<(string, Module)>) ex
 		def index = lookupR.func_index;
 		def func = wi.functions[index];
 
-		Execute.call(func, Values.NONE);
+		def result = Execute.call(func, Values.NONE);
+		match (result) {
+			Value(vals) => {
+				if (vals.length != 0) {
+					System.error("wasm:exit", Strings.format1("should have 0 results, but had %d", vals.length));
+					return;
+				}
+			}
+			Throw(thrown) => {
+				printThrowable(thrown);
+				System.error("wasm:exit", "threw exception");
+				return;
+			}
+			StackSwitch(info) => {
+				System.error("wasm:exit", "attempted stack switch");
+				return;
+			}
+		}
 	}
 }
 
@@ -436,4 +454,30 @@ def dupParser(cv: CodeValidator) -> WasmParser {
 	def newDecoder = CodePtr.new(null);
 	newDecoder.reset(Ranges.dup(decoder.data), decoder.pos, decoder.limit);
 	return WasmParser.new(cv.parser.extensions, cv.parser.limits, cv.parser.module, cv.parser.err, newDecoder);
+}
+
+
+def printThrowable(thrown: Throwable) {
+	var e = Trace.OUT;
+	var indent = 0;
+	for (s = thrown.stacktrace; s != null; s = s.prev) {
+		for (t in s.frames) {
+			for (i < indent) e.puts("  ");
+			t.0.render(e);
+			if (t.1 >= 0) e.puts(" +").putd(t.1);
+			e.ln();
+			indent++;
+		}
+		if (s.host != null) {
+			for (i < indent) e.puts("  ");
+			e.puts("\t@ ");
+			s.host.render(e);
+			e.ln();
+			indent++;
+		}
+	}
+	for (i < indent) e.puts("  ");
+	e.puts("!");
+	thrown.render(e);
+	e.ln();
 }
