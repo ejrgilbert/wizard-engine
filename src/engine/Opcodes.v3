@@ -803,7 +803,6 @@ component Opcodes {
 			if (ch == '.') continue;
 			break;
 		}
-		// Trace.OUT.put1("here %s", Ranges.dup(str)).ln();
 		if (p > 0) {
 			def op = findByName(Ranges.dup(str[0 ... p]));
 			// ref.test and ref.cast have null versions with a space in the opcode name,
