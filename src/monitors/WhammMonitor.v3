@@ -316,7 +316,7 @@ class WhammMonitor(named_modules: Array<NamedModule>) extends Monitor {
 						}
 					}
 					def stk = cv.val_stack.peekn(args);
-					def t   = stk[j];
+					def t   = stk[args - j - 1];
 					if (expParams[i] != t) {
 						match (op) {
 							CALL, CALL_INDIRECT => {
@@ -329,7 +329,7 @@ class WhammMonitor(named_modules: Array<NamedModule>) extends Monitor {
 							}
 						}
 					}
-					arg = WhammArg.Operand(t, j - args + 1);
+					arg = WhammArg.Operand(t, 0 - j);
 				}
 				Local(orig, j) => {
 					if (nested) {
