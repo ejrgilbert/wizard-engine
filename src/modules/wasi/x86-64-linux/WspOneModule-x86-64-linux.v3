@@ -456,7 +456,7 @@ class X86_64Linux_WspOneModule extends WspOneModule {
 		if (dir_fd1 == null) return BADF;
 		def pathz1 = HostModuleUtils.copyStringZ(memory, pathptr1, pathlen1); // TODO: maxpath
 		if (pathz1.trapped()) return INVAL;
-		var dir_fd2 = HostModuleUtils.fdmap.get(fd2);
+		var dir_fd2 = fdmap.get(fd2);
 		if (dir_fd2 == null) return BADF;
 		def pathz2 = HostModuleUtils.copyStringZ(memory, pathptr2, pathlen2); // TODO: maxpath
 		if (pathz2.trapped()) return INVAL;
