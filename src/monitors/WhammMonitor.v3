@@ -515,7 +515,6 @@ class WhammMonitor(named_modules: Array<NamedModule>) extends Monitor {
 		def func = wi.functions[index];
 		if (Trace.whamm) Trace.OUT.puts("wasm:exit call!").ln();
 
-		Metrics.whamm_report_time_us.updateDiff(before_us);
 		def result = Execute.call(func, Values.NONE); // XXX: runs on a new stack
 		match (result) {
 			Throw(thrown) => {
@@ -524,6 +523,7 @@ class WhammMonitor(named_modules: Array<NamedModule>) extends Monitor {
 			}
 			_ => {} // ignore
 		}
+		Metrics.whamm_report_time_us.updateDiff(before_us);
 	}
 }
 
