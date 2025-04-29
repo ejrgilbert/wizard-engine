@@ -9,8 +9,6 @@ type WhammParam {
 	case Func;
 	case NumTargets;
 	case Offset;
-	case Addr;
-	case DataSize;
 	case Imm(orig: Token, i: u31);
 	case Arg(orig: Token, i: u31);
 	case Local(orig: Token, i: u31);
@@ -24,8 +22,6 @@ type WhammParam {
 			Func => return buf.puts("fid");
 			NumTargets => return buf.puts("num_targets");
 			Offset => return buf.puts("offset");
-			Addr => return buf.puts("addr");
-			DataSize => return buf.puts("data_size");
 			Imm(orig, i) => return buf.put1("imm%d", i);
 			Arg(orig, i) => return buf.put1("arg%d", i);
 			Local(orig, i) => return buf.put1("local%d", i);
@@ -167,8 +163,6 @@ def parseParam0(r: TextReader) -> WhammParam {
 	if (Strings.equal("frame", token.image)) return WhammParam.FrameAccessor;
 	if (Strings.equal("num_targets", token.image)) return WhammParam.NumTargets;
 	if (Strings.equal("offset", token.image)) return WhammParam.Offset;
-	if (Strings.equal("addr", token.image)) return WhammParam.Addr;
-	if (Strings.equal("data_size", token.image)) return WhammParam.DataSize;
 
 	r.setFirstError(token.beginLine, token.beginColumn, Strings.format1("unresolved identifier: \"%s\"", token.image));
 	return WhammParam.DynamicLoc;
