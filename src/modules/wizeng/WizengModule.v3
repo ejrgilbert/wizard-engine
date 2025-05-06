@@ -1,202 +1,202 @@
-// Copyright 2023 Wizard Authors. All rights reserved.
-// See LICENSE for details of Apache 2.0 license.
+// // Copyright 2023 Wizard Authors. All rights reserved.
+// // See LICENSE for details of Apache 2.0 license.
 
-enum WizengExports(sig: SigDecl, invoke: (WizengModule, Range<Value>) -> HostResult) {
-	invoke0(SigCache.g_v, WizengModule.invoke0),
-	tail_invoke0(SigCache.g_v, WizengModule.tailInvoke0),
-	error(SigCache.ii_v, WizengModule.error),
-	crash(SigCache.v_v, WizengModule.crash),
-	force_gc(SigCache.v_v, WizengModule.force_gc),
-	putc(SigCache.i_v, WizengModule.putc),
-	puti(SigCache.i_v, WizengModule.puti),
-	puts(SigCache.ii_v, WizengModule.puts),
-	rdtsc(SigCache.v_l, WizengModule.rdtsc),
-	// XXX: wizeng module
-	// .new_module()
-}
+// enum WizengExports(sig: SigDecl, invoke: (WizengModule, Range<Value>) -> HostResult) {
+// 	invoke0(SigCache.g_v, WizengModule.invoke0),
+// 	tail_invoke0(SigCache.g_v, WizengModule.tailInvoke0),
+// 	error(SigCache.ii_v, WizengModule.error),
+// 	crash(SigCache.v_v, WizengModule.crash),
+// 	force_gc(SigCache.v_v, WizengModule.force_gc),
+// 	putc(SigCache.i_v, WizengModule.putc),
+// 	puti(SigCache.i_v, WizengModule.puti),
+// 	puts(SigCache.ii_v, WizengModule.puts),
+// 	rdtsc(SigCache.v_l, WizengModule.rdtsc),
+// 	// XXX: wizeng module
+// 	// .new_module()
+// }
 
-class WizengModule extends HostModule("wizeng") {
-	var instance: Instance;
-	var memory: Memory;
+// class WizengModule extends HostModule("wizeng") {
+// 	var instance: Instance;
+// 	var memory: Memory;
 
-	def preprocess(error: ErrorGen, module: Module, result: Array<Exportable>) {
-		var imports = module.imports;
-		for (j < imports.length) {
-			var i = imports[j];
-			if (!Strings.equal(this.name, i.imp.module_name)) continue;
-			if (!FuncDecl.?(i)) continue;
-			var impf = FuncDecl.!(i);
-			var found = false;
-			for (ex in WizengExports) {
-				if (Strings.equal(ex.name, i.imp.field_name)) {
-					var func = ex.invoke(this, _);
-					result[j] = HostFunction.new(ex.name, ex.sig, func);
-					found = true;
-					break;
-				}
-			}
-			if (!found && Strings.equal("new_funcref", i.imp.field_name)) {
-				var results = impf.sig.results;
-				if (results.length != 1) continue;
-				var sig: SigDecl;
-				var rtype = results[0];
-				match (rtype) {
-					Ref(nullable, heap) => match (heap) {
-						Func(s) => sig = s;
-						_ => continue;
-					}
-					_ => continue;
-				}
+// 	def preprocess(error: ErrorGen, module: Module, result: Array<Exportable>) {
+// 		var imports = module.imports;
+// 		for (j < imports.length) {
+// 			var i = imports[j];
+// 			if (!Strings.equal(this.name, i.imp.module_name)) continue;
+// 			if (!FuncDecl.?(i)) continue;
+// 			var impf = FuncDecl.!(i);
+// 			var found = false;
+// 			for (ex in WizengExports) {
+// 				if (Strings.equal(ex.name, i.imp.field_name)) {
+// 					var func = ex.invoke(this, _);
+// 					result[j] = HostFunction.new(ex.name, ex.sig, func);
+// 					found = true;
+// 					break;
+// 				}
+// 			}
+// 			if (!found && Strings.equal("new_funcref", i.imp.field_name)) {
+// 				var results = impf.sig.results;
+// 				if (results.length != 1) continue;
+// 				var sig: SigDecl;
+// 				var rtype = results[0];
+// 				match (rtype) {
+// 					Ref(nullable, heap) => match (heap) {
+// 						Func(s) => sig = s;
+// 						_ => continue;
+// 					}
+// 					_ => continue;
+// 				}
 
-				var sig_index = 0; // TODO: get correct sig index?
-				var func = new_funcref(sig, sig_index, _);
-				var imported_sig = Canon.sigPR(SigCache.arr_ii, [rtype]);
-				result[j] = HostFunction.new("new_funcref", imported_sig, func);
-			}
-			if (!found && Strings.equal("puta", i.imp.field_name)) {
-				var params = impf.sig.params;
-				if (params.length != 3) continue;
-				match (params[0]) {
-					Ref(nullable, heap) => {
-						if (nullable) match (heap) {
-							Array(a) => match (a.elem_types[0].pack) {
-								PACKED_I8 => ;
-								_ => continue;
-							}
-							_ => continue;
-						}
-						else continue;
-					}
-					_ => continue;
-				}
-				if (params[1] != ValueType.I32) continue;
-				if (params[2] != ValueType.I32) continue;
+// 				var sig_index = 0; // TODO: get correct sig index?
+// 				var func = new_funcref(sig, sig_index, _);
+// 				var imported_sig = Canon.sigPR(SigCache.arr_ii, [rtype]);
+// 				result[j] = HostFunction.new("new_funcref", imported_sig, func);
+// 			}
+// 			if (!found && Strings.equal("puta", i.imp.field_name)) {
+// 				var params = impf.sig.params;
+// 				if (params.length != 3) continue;
+// 				match (params[0]) {
+// 					Ref(nullable, heap) => {
+// 						if (nullable) match (heap) {
+// 							Array(a) => match (a.elem_types[0].pack) {
+// 								PACKED_I8 => ;
+// 								_ => continue;
+// 							}
+// 							_ => continue;
+// 						}
+// 						else continue;
+// 					}
+// 					_ => continue;
+// 				}
+// 				if (params[1] != ValueType.I32) continue;
+// 				if (params[2] != ValueType.I32) continue;
 
-				var imported_sig = Canon.sigPR(params, SigCache.arr_v);
-				result[j] = HostFunction.new("puta", imported_sig, puta);
-			}
-		}
-	}
-	def postprocess(error: ErrorGen, instance: Instance) {
-		this.instance = instance;
-		this.memory = instance.findExportOfType<Memory>(null);
-	}
-	// exported: Invokes a {funcref} value with no arguments.
-	def invoke0(args: Range<Value>) -> HostResult {
-		match (args[0]) {
-			Ref(object) => {
-				match (object) {
-					null => return HostResult.Throw(Trap.new(TrapReason.NULL_DEREF, null, null));
-					x: Function => return invokeFunction0(x);
-				}
-			}
-			_ => ;
-		}
-		return HostResult.Throw(Trap.new(TrapReason.FAILED_CAST, null, null));
-	}
-	// exported: Invokes a {funcref} value with no arguments as a tail call.
-	def tailInvoke0(args: Range<Value>) -> HostResult {
-		match (args[0]) {
-			Ref(object) => {
-				match (object) {
-					null => return HostResult.Throw(Trap.new(TrapReason.NULL_DEREF, null, null));
-					x: Function => return HostResult.TailCall(x, []);
-				}
-			}
-			_ => ;
-		}
-		return HostResult.Throw(Trap.new(TrapReason.FAILED_CAST, null, null));
-	}
-	// exported: Throws an error whose message is in the Wasm memory.
-	def error(args: Range<Value>) -> HostResult {
-		var base = Values.unbox_u(args[0]), size = Values.unbox_u(args[1]);
-		var offset = getRegion2(memory, base, size);
-		if (offset < 0) return HostResult.Throw(Trap.new(TrapReason.MEM_OUT_OF_BOUNDS, "when calling wizeng.error()", null));
-		var msg = memory.extract(u32.!(offset), size);
-		return HostResult.Throw(Trap.new(TrapReason.ERROR, msg, null));
-	}
-	// exported: Crashes the engine intentionally.
-	def crash(args: Range<Value>) -> HostResult {
-		System.error("Fatal", "wizeng.crash() called by program");
-		return HostResult.Throw(null);
-	}
-	// exported: Creates a new function with bytecode in memory.
-	def new_funcref(sig: SigDecl, sig_index: int, args: Range<Value>) -> HostResult {
-		var input = copyString(memory, args[0], args[1]);
-		if (!input.ok()) return input.toHostResultThrow();
-		var code = input.result;
-		var module = instance.module;
-		var func = FuncDecl.new(sig_index);
-		func.setOrigCode(code);
-		func.sig = sig;
-		func.func_index = module.functions.length + module.new_funcs++;
-		var err = ErrorGen.new(module.filename);
-		Execute.tiering.onFuncBody(module, u32.!(func.func_index), code, err);
-		var validator = CodeValidator.new(Extension.FUNCTION_REFERENCES, Limits.new(), module, err);
-		match (validator.validateFunc(func)) {
-			Ok => ;
-			Error(error_code, error_pos, error_msg) => {
-// TODO				Trace.OUT.put3("error[%s]: %s @ +%d", error_code.name, error_msg, error_pos).ln();
-				return HostResult.Value1(Values.REF_NULL); // TODO: return error code
-			}
-		}
-		var wf = WasmFunction.new(instance, func);
-		Execute.tiering.onNewFunction(wf, err);
-		return HostResult.Value1(Value.Ref(wf));
-	}
-	// Exported: forces a Wizard-level garbage-collection
-	def force_gc(args: Range<Value>) -> HostResult {
-		Target.forceGC();
-		return HostResult.Value0;
-	}
-	// Exported: read timestamp counter (rdstc on x86).
-	def rdtsc(args: Range<Value>) -> HostResult {
-		return HostResult.Value1(Value.I64(Target.rdtsc()));
-	}
-	// Exported: output a single byte to stdout.
-	def putc(args: Range<Value>) -> HostResult {
-		var v = Values.unbox_i(args[0]);
-		System.putc(byte.view(v));
-		return HostResult.Value0;
-	}
-	// Exported: output a signed 32-bit integer to stdout.
-	def puti(args: Range<Value>) -> HostResult {
-		var v = Values.unbox_i(args[0]);
-		System.puti(v);
-		return HostResult.Value0;
-	}
-	// Exported: output a range of bytes directly to stdout.
-	def puts(args: Range<Value>) -> HostResult {
-		var range = getRegion3(memory, args[0], args[1]);
-		if (!range.ok()) return range.toHostResultThrow();
-		System.write(1, range.result);
-		return HostResult.Value0;
-	}
-	// Exported: output a range of bytes directly to stdout.
-	def puta(args: Range<Value>) -> HostResult {
-		var raw_arr = Value.Ref.!(args[0]).val;
-		if (raw_arr == null) return HostResult.Throw(Trap.new(TrapReason.NULL_DEREF, null, null));
-		var arr = HeapArray.!(raw_arr);
-		var offset_u32 = Values.unbox_u(args[1]);
-		var size_u32 = Values.unbox_u(args[2]);
-		if (ArrayUtil.boundsCheck(arr.vals, offset_u32, size_u32) < 0) {
-			return HostResult.Throw(Trap.new(TrapReason.ARRAY_INDEX_OOB, "when calling wizeng.puta()", null));
-		}
-		var result = Ranges.map(arr.vals[offset_u32 ..+ size_u32], Values.unbox_u8);
-		System.write(1, result);
-		return HostResult.Value0;
-	}
+// 				var imported_sig = Canon.sigPR(params, SigCache.arr_v);
+// 				result[j] = HostFunction.new("puta", imported_sig, puta);
+// 			}
+// 		}
+// 	}
+// 	def postprocess(error: ErrorGen, instance: Instance) {
+// 		this.instance = instance;
+// 		this.memory = instance.findExportOfType<Memory>(null);
+// 	}
+// 	// exported: Invokes a {funcref} value with no arguments.
+// 	def invoke0(args: Range<Value>) -> HostResult {
+// 		match (args[0]) {
+// 			Ref(object) => {
+// 				match (object) {
+// 					null => return HostResult.Throw(Trap.new(TrapReason.NULL_DEREF, null, null));
+// 					x: Function => return invokeFunction0(x);
+// 				}
+// 			}
+// 			_ => ;
+// 		}
+// 		return HostResult.Throw(Trap.new(TrapReason.FAILED_CAST, null, null));
+// 	}
+// 	// exported: Invokes a {funcref} value with no arguments as a tail call.
+// 	def tailInvoke0(args: Range<Value>) -> HostResult {
+// 		match (args[0]) {
+// 			Ref(object) => {
+// 				match (object) {
+// 					null => return HostResult.Throw(Trap.new(TrapReason.NULL_DEREF, null, null));
+// 					x: Function => return HostResult.TailCall(x, []);
+// 				}
+// 			}
+// 			_ => ;
+// 		}
+// 		return HostResult.Throw(Trap.new(TrapReason.FAILED_CAST, null, null));
+// 	}
+// 	// exported: Throws an error whose message is in the Wasm memory.
+// 	def error(args: Range<Value>) -> HostResult {
+// 		var base = Values.unbox_u(args[0]), size = Values.unbox_u(args[1]);
+// 		var offset = getRegion2(memory, base, size);
+// 		if (offset < 0) return HostResult.Throw(Trap.new(TrapReason.MEM_OUT_OF_BOUNDS, "when calling wizeng.error()", null));
+// 		var msg = memory.extract(u32.!(offset), size);
+// 		return HostResult.Throw(Trap.new(TrapReason.ERROR, msg, null));
+// 	}
+// 	// exported: Crashes the engine intentionally.
+// 	def crash(args: Range<Value>) -> HostResult {
+// 		System.error("Fatal", "wizeng.crash() called by program");
+// 		return HostResult.Throw(null);
+// 	}
+// 	// exported: Creates a new function with bytecode in memory.
+// 	def new_funcref(sig: SigDecl, sig_index: int, args: Range<Value>) -> HostResult {
+// 		var input = copyString(memory, args[0], args[1]);
+// 		if (!input.ok()) return input.toHostResultThrow();
+// 		var code = input.result;
+// 		var module = instance.module;
+// 		var func = FuncDecl.new(sig_index);
+// 		func.setOrigCode(code);
+// 		func.sig = sig;
+// 		func.func_index = module.functions.length + module.new_funcs++;
+// 		var err = ErrorGen.new(module.filename);
+// 		Execute.tiering.onFuncBody(module, u32.!(func.func_index), code, err);
+// 		var validator = CodeValidator.new(Extension.FUNCTION_REFERENCES, Limits.new(), module, err);
+// 		match (validator.validateFunc(func)) {
+// 			Ok => ;
+// 			Error(error_code, error_pos, error_msg) => {
+// // TODO				Trace.OUT.put3("error[%s]: %s @ +%d", error_code.name, error_msg, error_pos).ln();
+// 				return HostResult.Value1(Values.REF_NULL); // TODO: return error code
+// 			}
+// 		}
+// 		var wf = WasmFunction.new(instance, func);
+// 		Execute.tiering.onNewFunction(wf, err);
+// 		return HostResult.Value1(Value.Ref(wf));
+// 	}
+// 	// Exported: forces a Wizard-level garbage-collection
+// 	def force_gc(args: Range<Value>) -> HostResult {
+// 		Target.forceGC();
+// 		return HostResult.Value0;
+// 	}
+// 	// Exported: read timestamp counter (rdstc on x86).
+// 	def rdtsc(args: Range<Value>) -> HostResult {
+// 		return HostResult.Value1(Value.I64(Target.rdtsc()));
+// 	}
+// 	// Exported: output a single byte to stdout.
+// 	def putc(args: Range<Value>) -> HostResult {
+// 		var v = Values.unbox_i(args[0]);
+// 		System.putc(byte.view(v));
+// 		return HostResult.Value0;
+// 	}
+// 	// Exported: output a signed 32-bit integer to stdout.
+// 	def puti(args: Range<Value>) -> HostResult {
+// 		var v = Values.unbox_i(args[0]);
+// 		System.puti(v);
+// 		return HostResult.Value0;
+// 	}
+// 	// Exported: output a range of bytes directly to stdout.
+// 	def puts(args: Range<Value>) -> HostResult {
+// 		var range = getRegion3(memory, args[0], args[1]);
+// 		if (!range.ok()) return range.toHostResultThrow();
+// 		System.write(1, range.result);
+// 		return HostResult.Value0;
+// 	}
+// 	// Exported: output a range of bytes directly to stdout.
+// 	def puta(args: Range<Value>) -> HostResult {
+// 		var raw_arr = Value.Ref.!(args[0]).val;
+// 		if (raw_arr == null) return HostResult.Throw(Trap.new(TrapReason.NULL_DEREF, null, null));
+// 		var arr = HeapArray.!(raw_arr);
+// 		var offset_u32 = Values.unbox_u(args[1]);
+// 		var size_u32 = Values.unbox_u(args[2]);
+// 		if (ArrayUtil.boundsCheck(arr.vals, offset_u32, size_u32) < 0) {
+// 			return HostResult.Throw(Trap.new(TrapReason.ARRAY_INDEX_OOB, "when calling wizeng.puta()", null));
+// 		}
+// 		var result = Ranges.map(arr.vals[offset_u32 ..+ size_u32], Values.unbox_u8);
+// 		System.write(1, result);
+// 		return HostResult.Value0;
+// 	}
 
-	private def invokeFunction0(func: Function) -> HostResult {
-		if (func.sig.params.length != 0 || func.sig.results.length != 0) {
-			return HostResult.Throw(Trap.new(TrapReason.FUNC_SIG_MISMATCH, null, null));
-		}
+// 	private def invokeFunction0(func: Function) -> HostResult {
+// 		if (func.sig.params.length != 0 || func.sig.results.length != 0) {
+// 			return HostResult.Throw(Trap.new(TrapReason.FUNC_SIG_MISMATCH, null, null));
+// 		}
 
-		var result = Execute.call(func, []);
-		match (result) {
-			Throw(thrown) => return HostResult.Throw(thrown);
-			_ => return HostResult.Value0;
-		}
-	}
-}
-def X_ = ModuleRegistry.add(WizengModule.new(), false);
+// 		var result = Execute.call(func, []);
+// 		match (result) {
+// 			Throw(thrown) => return HostResult.Throw(thrown);
+// 			_ => return HostResult.Value0;
+// 		}
+// 	}
+// }
+// def X_ = ModuleRegistry.add(WizengModule.new(), false);

@@ -29,8 +29,13 @@ class HostAdapter2_of<I> {
 // Start: Utility classes to setup Wasi Hostmodule structure
 class Wasi2_HostAdapter<P, R>(f: WasiInstance2 -> P -> R, adapter: (P -> R) -> HostFunc, implemented: bool) extends HostAdapter2_of<WasiInstance2> {
 	def func(name: string, i: WasiInstance2) -> HostFunction {
+		Trace.OUT.put1("inside the hostadapter for '%s'", name).ln();
 		var g = f(i);
+		Trace.OUT.put1("called the function for '%s'", name).ln();
 		def host_func = adapter(g);
+
+
+		Trace.OUT.put1("I NEVER GET HERE, FAIL ABOVE ^^^^", name).ln();
 		if (i.isTargetSpecific || implemented) {
 			// implemented means that it's implemented in either the target-specific or non-target-specific class
 			return HostFunction.new(name, host_func.sig, host_func.invoke);

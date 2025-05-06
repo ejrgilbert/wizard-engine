@@ -5,7 +5,7 @@
 // an {Exportable} for a given name and import kind. It can use the {binder} as a
 // callback to access parts of the module that need polymorphic substitution.
 class ImportProcessor(name: string) {
-	def preprocess(error: ErrorGen, module: Module, imports: Array<Exportable>) { }
+	def preprocess(module_imports: Vector<Decl>, imports: Array<Exportable>) { }
 	def processFunction(error: ErrorGen, name: string, decl: FuncDecl) -> Exportable { return null; }
 	def processTable(error: ErrorGen, name: string, decl: TableDecl) -> Exportable { return null; }
 	def processMemory(error: ErrorGen, name: string, decl: MemoryDecl) -> Exportable { return null; }
@@ -39,187 +39,187 @@ class Instantiator(extensions: Extension.set, module: Module, var imports: Array
 	// For dynamic linking with multiple wasm modules, this method is called twice with the same set of `deferred_imports`.
 	// The instantiator keeps track of partial/completed instantiation state.
 	def runPartial(deferred_imports: Array<int>) -> Instance {
-		if (fully_instantiated) return instance;
-		//if (!partially_instantiated) {
-		if (tiering != null) tiering.onInstantiateStart(this);
-		if (module.imports.length > 0) {
-			if (imports == null) imports = Array.new(module.imports.length);
-			else if (imports.length < module.imports.length) {
-				return fail(Strings.format2("expected %d imports, got %d", module.imports.length, imports.length));
-			}
-		}
-		for (i < processors.length) {
-			processors[i].preprocess(error, module, imports);
-		}
+		// if (fully_instantiated) return instance;
+		// //if (!partially_instantiated) {
+		// if (tiering != null) tiering.onInstantiateStart(this);
+		// if (module.imports.length > 0) {
+		// 	if (imports == null) imports = Array.new(module.imports.length);
+		// 	else if (imports.length < module.imports.length) {
+		// 		return fail(Strings.format2("expected %d imports, got %d", module.imports.length, imports.length));
+		// 	}
+		// }
+		// for (i < processors.length) {
+		// 	processors[i].preprocess(error, module, imports);
+		// }
 
-		var needSigIds = false;
-		for (j < module.decls.length) {
-			if (error.error()) return null;
-			match (module.decls[j]) {
-				Sig(index) => {
-					var decl = SigDecl.!(module.heaptypes[index]);
-					instance.heaptypes[index] = mapSig(decl); // TODO: respect recursion group
-				}
-				Struct(index) => {
-					var decl = StructDecl.!(module.heaptypes[index]);
-					// TODO: substitute type declarations in struct
-				}
-				Array(index) => {
-					var decl = ArrayDecl.!(module.heaptypes[index]);
-				}
-				Func(index, sig_index) => {
-					var decl = module.functions[index];
-					if ((import_info = decl.imp) != null) {
-						if (partially_instantiated != checkDeferredImport(decl.imp.import_index, deferred_imports)) continue;
-						var r = imports[decl.imp.import_index];
-						instance.functions[index] = importFunction(decl, r);
-					} else if (!partially_instantiated) {
-						var f = WasmFunction.new(instance, mapFuncDecl(index));
-						instance.functions[index] = f;
-					}
-				}
-				Table(index) => {
-					var decl = module.tables[index];
-					if ((import_info = decl.imp) != null) {
-						if (partially_instantiated != checkDeferredImport(decl.imp.import_index, deferred_imports)) continue;
-						var r = imports[decl.imp.import_index];
-						var t =  importTable(decl, r);
-						instance.tables[index] = t;
-						if (t != null && t.funcs != null) needSigIds = true;
-					} else if (!partially_instantiated) {
-						var t = Table.new(mapType(decl.elemtype), decl);
-						if (t.oom) return fail("out of memory allocating table");
-						instance.tables[index] = t;
-						if (t.funcs != null) needSigIds = true;
-					}
-				}
-				Memory(index) => {
-					var decl = module.memories[index];
-					if ((import_info = decl.imp) != null) {
-						if (partially_instantiated != checkDeferredImport(decl.imp.import_index, deferred_imports)) continue;
-						var r = imports[decl.imp.import_index];
-						instance.memories[index] = importMemory(decl, r);
-					} else if (!partially_instantiated) {
-						var m = Target.newMemory(decl);
-						if (m.oom) return fail("out of memory allocating memory");
-						instance.memories[index] = m;
-					}
-				}
-				Global(index) => {
-					var decl = module.globals[index];
-					if ((import_info = decl.imp) != null) {
-						if (partially_instantiated != checkDeferredImport(decl.imp.import_index, deferred_imports)) continue;
-						var r = imports[decl.imp.import_index];
-						instance.globals[index] = importGlobal(decl, r);
-					} else if (!partially_instantiated) {
-						var g = Global.new(mapType(decl.valtype), decl);
-						instance.globals[index] = g;
-						g.set(instance.evalInitExpr(decl.init));
-					}
-				}
-				Tag(index) => {
-					var decl = module.tags[index];
-					if ((import_info = decl.imp) != null) {
-						if (partially_instantiated != checkDeferredImport(decl.imp.import_index, deferred_imports)) continue;
-						var r = imports[decl.imp.import_index];
-						instance.tags[index] = importTag(decl, r);
-					} else if (!partially_instantiated) {
-						instance.tags[index] = Tag.new(getSigDecl(decl.sig_index), decl);
-					}
-				}
-				Continuation(index) => {
-					// TODO-SS: implement
-				}
-			}
-		}
-		if (error.error()) return null;
-		import_info = null;
-		if (needSigIds) {
-			for (i < instance.heaptypes.length) {
-				match (instance.heaptypes[i]) {
-					x: SigDecl => instance.sig_ids[i] = Canon.sigId(x);
-					_ => instance.sig_ids[i] = -1;
-				}
-			}
-		}
+		// var needSigIds = false;
+		// for (j < module.decls.length) {
+		// 	if (error.error()) return null;
+		// 	match (module.decls[j]) {
+		// 		Sig(index) => {
+		// 			var decl = SigDecl.!(module.heaptypes[index]);
+		// 			instance.heaptypes[index] = mapSig(decl); // TODO: respect recursion group
+		// 		}
+		// 		Struct(index) => {
+		// 			var decl = StructDecl.!(module.heaptypes[index]);
+		// 			// TODO: substitute type declarations in struct
+		// 		}
+		// 		Array(index) => {
+		// 			var decl = ArrayDecl.!(module.heaptypes[index]);
+		// 		}
+		// 		Func(index, sig_index) => {
+		// 			var decl = module.functions[index];
+		// 			if ((import_info = decl.imp) != null) {
+		// 				if (partially_instantiated != checkDeferredImport(decl.imp.import_index, deferred_imports)) continue;
+		// 				var r = imports[decl.imp.import_index];
+		// 				instance.functions[index] = importFunction(decl, r);
+		// 			} else if (!partially_instantiated) {
+		// 				var f = WasmFunction.new(instance, mapFuncDecl(index));
+		// 				instance.functions[index] = f;
+		// 			}
+		// 		}
+		// 		Table(index) => {
+		// 			var decl = module.tables[index];
+		// 			if ((import_info = decl.imp) != null) {
+		// 				if (partially_instantiated != checkDeferredImport(decl.imp.import_index, deferred_imports)) continue;
+		// 				var r = imports[decl.imp.import_index];
+		// 				var t =  importTable(decl, r);
+		// 				instance.tables[index] = t;
+		// 				if (t != null && t.funcs != null) needSigIds = true;
+		// 			} else if (!partially_instantiated) {
+		// 				var t = Table.new(mapType(decl.elemtype), decl);
+		// 				if (t.oom) return fail("out of memory allocating table");
+		// 				instance.tables[index] = t;
+		// 				if (t.funcs != null) needSigIds = true;
+		// 			}
+		// 		}
+		// 		Memory(index) => {
+		// 			var decl = module.memories[index];
+		// 			if ((import_info = decl.imp) != null) {
+		// 				if (partially_instantiated != checkDeferredImport(decl.imp.import_index, deferred_imports)) continue;
+		// 				var r = imports[decl.imp.import_index];
+		// 				instance.memories[index] = importMemory(decl, r);
+		// 			} else if (!partially_instantiated) {
+		// 				var m = Target.newMemory(decl);
+		// 				if (m.oom) return fail("out of memory allocating memory");
+		// 				instance.memories[index] = m;
+		// 			}
+		// 		}
+		// 		Global(index) => {
+		// 			var decl = module.globals[index];
+		// 			if ((import_info = decl.imp) != null) {
+		// 				if (partially_instantiated != checkDeferredImport(decl.imp.import_index, deferred_imports)) continue;
+		// 				var r = imports[decl.imp.import_index];
+		// 				instance.globals[index] = importGlobal(decl, r);
+		// 			} else if (!partially_instantiated) {
+		// 				var g = Global.new(mapType(decl.valtype), decl);
+		// 				instance.globals[index] = g;
+		// 				g.set(instance.evalInitExpr(decl.init));
+		// 			}
+		// 		}
+		// 		Tag(index) => {
+		// 			var decl = module.tags[index];
+		// 			if ((import_info = decl.imp) != null) {
+		// 				if (partially_instantiated != checkDeferredImport(decl.imp.import_index, deferred_imports)) continue;
+		// 				var r = imports[decl.imp.import_index];
+		// 				instance.tags[index] = importTag(decl, r);
+		// 			} else if (!partially_instantiated) {
+		// 				instance.tags[index] = Tag.new(getSigDecl(decl.sig_index), decl);
+		// 			}
+		// 		}
+		// 		Continuation(index) => {
+		// 			// TODO-SS: implement
+		// 		}
+		// 	}
+		// }
+		// if (error.error()) return null;
+		// import_info = null;
+		// if (needSigIds) {
+		// 	for (i < instance.heaptypes.length) {
+		// 		match (instance.heaptypes[i]) {
+		// 			x: SigDecl => instance.sig_ids[i] = Canon.sigId(x);
+		// 			_ => instance.sig_ids[i] = -1;
+		// 		}
+		// 	}
+		// }
 
-		// Initialize tables that have default element values.
-		for (i < instance.tables.length) {
-			var t = instance.tables[i];
-			var decl = instance.module.tables[i];
-			var is_deferred = if(t == null, true,
-				decl.imp != null && checkDeferredImport(decl.imp.import_index, deferred_imports));
-			// deferred imports are only loaded during finalization, regular imports are only
-			// loaded on first pass.			
-			if (partially_instantiated != is_deferred || !t.decl.has_default_elem) continue;
-			var val = instance.evalInitExpr(t.decl.default_elem);
-			t.fill(0, val, u32.view(t.elems.length));
-		}
-		// Load element segments.
-		for (i < module.elems.length) {
-			var e = module.elems[i];
-			match (e.mode) {
-				Passive => ;
-				Active(index, offset) => {
-					var t = instance.tables[index];
-					var decl = instance.module.tables[index];
-					var is_deferred = if(t == null, true,
-						decl.imp != null && checkDeferredImport(decl.imp.import_index, deferred_imports));
-					// deferred imports are only loaded during finalization, regular imports are only
-					// loaded on first pass.
-					if (partially_instantiated != is_deferred) continue;
-					loadElems(index, offset, e);
-					instance.dropped_elems[i] = true;
-					if (error.error()) return null;
-				}
-				Declarative => {
-					instance.dropped_elems[i] = true;
-				}
-			}
-		}
-		// Load data segments.
-		for (i < module.data.length) {
-			var d = module.data[i];
-			match (d.mode) {
-				Passive => ;
-				Active(index, offset) => {
-					var mem = instance.memories[index];
-					var decl = instance.module.memories[index];
-					var is_deferred = if (mem == null, true,
-						decl.imp != null && checkDeferredImport(decl.imp.import_index, deferred_imports));
-					// deferred imports are only loaded during finalization, regular imports are only
-					// loaded on first pass.
-					if (partially_instantiated != is_deferred) continue;
-					loadData(index, offset, d);
-					instance.dropped_data[i] = true;
-					if (error.error()) return null;
-				}
-				Declarative => {
-					instance.dropped_data[i] = true;
-				}
-			}
-		}
+		// // Initialize tables that have default element values.
+		// for (i < instance.tables.length) {
+		// 	var t = instance.tables[i];
+		// 	var decl = instance.module.tables[i];
+		// 	var is_deferred = if(t == null, true,
+		// 		decl.imp != null && checkDeferredImport(decl.imp.import_index, deferred_imports));
+		// 	// deferred imports are only loaded during finalization, regular imports are only
+		// 	// loaded on first pass.			
+		// 	if (partially_instantiated != is_deferred || !t.decl.has_default_elem) continue;
+		// 	var val = instance.evalInitExpr(t.decl.default_elem);
+		// 	t.fill(0, val, u32.view(t.elems.length));
+		// }
+		// // Load element segments.
+		// for (i < module.elems.length) {
+		// 	var e = module.elems[i];
+		// 	match (e.mode) {
+		// 		Passive => ;
+		// 		Active(index, offset) => {
+		// 			var t = instance.tables[index];
+		// 			var decl = instance.module.tables[index];
+		// 			var is_deferred = if(t == null, true,
+		// 				decl.imp != null && checkDeferredImport(decl.imp.import_index, deferred_imports));
+		// 			// deferred imports are only loaded during finalization, regular imports are only
+		// 			// loaded on first pass.
+		// 			if (partially_instantiated != is_deferred) continue;
+		// 			loadElems(index, offset, e);
+		// 			instance.dropped_elems[i] = true;
+		// 			if (error.error()) return null;
+		// 		}
+		// 		Declarative => {
+		// 			instance.dropped_elems[i] = true;
+		// 		}
+		// 	}
+		// }
+		// // Load data segments.
+		// for (i < module.data.length) {
+		// 	var d = module.data[i];
+		// 	match (d.mode) {
+		// 		Passive => ;
+		// 		Active(index, offset) => {
+		// 			var mem = instance.memories[index];
+		// 			var decl = instance.module.memories[index];
+		// 			var is_deferred = if (mem == null, true,
+		// 				decl.imp != null && checkDeferredImport(decl.imp.import_index, deferred_imports));
+		// 			// deferred imports are only loaded during finalization, regular imports are only
+		// 			// loaded on first pass.
+		// 			if (partially_instantiated != is_deferred) continue;
+		// 			loadData(index, offset, d);
+		// 			instance.dropped_data[i] = true;
+		// 			if (error.error()) return null;
+		// 		}
+		// 		Declarative => {
+		// 			instance.dropped_data[i] = true;
+		// 		}
+		// 	}
+		// }
 
-		// Organize exports
-		var exports = instance.exports;
-		for (i < module.exports.length) {
-			exports[i] = getDecl(module.exports[i].1);
-		}
+		// // Organize exports
+		// var exports = instance.exports;
+		// for (i < module.exports.length) {
+		// 	exports[i] = getDecl(module.exports[i].1);
+		// }
 
-		var has_deferred_imports = deferred_imports != null && deferred_imports.length > 0;
-		if (!partially_instantiated) {
-			partially_instantiated = true;
-			fully_instantiated = !has_deferred_imports;
-		} else {
-			fully_instantiated = true;
-		}
+		// var has_deferred_imports = deferred_imports != null && deferred_imports.length > 0;
+		// if (!partially_instantiated) {
+		// 	partially_instantiated = true;
+		// 	fully_instantiated = !has_deferred_imports;
+		// } else {
+		// 	fully_instantiated = true;
+		// }
 
-		if (fully_instantiated) {
-			for (i < processors.length) {
-				processors[i].postprocess(error, instance);
-			}
-			if (tiering != null) tiering.onInstantiateFinish(this, error);
-		}
+		// if (fully_instantiated) {
+		// 	for (i < processors.length) {
+		// 		processors[i].postprocess(error, instance);
+		// 	}
+		// 	if (tiering != null) tiering.onInstantiateFinish(this, error);
+		// }
 		return instance;
 	}
 	def importFunction(decl: FuncDecl, r: Exportable) -> Function {

@@ -141,14 +141,14 @@ class ModuleLinker(engine: Engine,
 		return (null, null);
 	}
 	private def resolveImportProcessor(imp_mod_name: string) -> ImportProcessor {
-		for (i < lookup.length) {
-			var p = lookup[i](imp_mod_name);
-			if (p != null) {
-				var trace = BasicTracing.moduleFilter != null && BasicTracing.moduleFilter.matchesStr(imp_mod_name, null);
-				if (HostModule.?(p)) HostModule.!(p).init(program_args, trace, error); // XXX: abstraction break
-				return p;
-			}
-		}
+		// for (i < lookup.length) {
+		// 	var p = lookup[i](imp_mod_name);
+		// 	if (p != null) {
+		// 		var trace = BasicTracing.moduleFilter != null && BasicTracing.moduleFilter.matchesStr(imp_mod_name, null);
+		// 		if (HostModule.?(p)) HostModule.!(p).init(program_args, trace, error); // XXX: abstraction break
+		// 		return p;
+		// 	}
+		// }
 		return null;
 	}
 	private def isDynamicImport(module_name: string, self_name: string) -> bool {

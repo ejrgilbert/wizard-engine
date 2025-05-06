@@ -1,19 +1,19 @@
-all: x86-linux x86-64-linux jvm
+all: jvm
 
-.PHONY: clean x86-linux x86-64-linux jvm wasm-wave
+.PHONY: clean jvm
 clean:
 	rm -f TAGS bin/*
 	cp scripts/* bin/
 
-x86-linux: bin/spectest.x86-linux bin/wizeng.x86-linux bin/unittest.x86-linux
+# x86-linux: bin/spectest.x86-linux bin/wizeng.x86-linux bin/unittest.x86-linux
 
-x86-64-linux: bin/spectest.x86-64-linux bin/wizeng.x86-64-linux bin/unittest.x86-64-linux
+# x86-64-linux: bin/spectest.x86-64-linux bin/wizeng.x86-64-linux bin/unittest.x86-64-linux
 
 jvm: bin/spectest.jvm bin/wizeng.jvm bin/unittest.jvm
 
-wasm-wave: bin/spectest.wasm bin/wizeng.wasm bin/unittest.wasm
+# wasm-wave: bin/spectest.wasm bin/wizeng.wasm bin/unittest.wasm
 
-v3i: bin/spectest.v3i bin/wizeng.v3i bin/unittest.v3i
+# v3i: bin/spectest.v3i bin/wizeng.v3i bin/unittest.v3i
 
 ENGINE=src/engine/*.v3 src/engine/v3/*.v3 src/util/*.v3
 MONITORS=src/monitors/*.v3

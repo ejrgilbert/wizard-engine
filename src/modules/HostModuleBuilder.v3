@@ -82,30 +82,30 @@ private class HostModuleOf<C> extends HostModule {
 
 	new(name: string, tnew) super(name) { }
 
-	def preprocess(error: ErrorGen, module: Module, result: Array<Exportable>) {
-		var imports = module.imports;
-		for (j < imports.length) {
-			var i = imports[j];
-			if (result[j] != null) continue;                             // don't overwrite existing binding
-			if (!Strings.equal(this.name, i.imp.module_name)) continue;  // not this module
-			var simple = map[i.imp.field_name];                          // find simple binding
-			if (simple != null) {
-				result[j] = simple;
-				continue;
-			}
-			var closure = closures[i.imp.field_name];
-			if (closure.name != null) {
-				if (last == none) last = tnew(); // lazily allocate a <C> object
-				result[j] = HostFunction.new(closure.name, closure.sig, closure.cnew(last));
-			}
-		}
+	def preprocess(module_imports: Vector<Decl>, result: Array<Exportable>) {
+		// var imports = module.imports;
+		// for (j < imports.length) {
+		// 	var i = imports[j];
+		// 	if (result[j] != null) continue;                             // don't overwrite existing binding
+		// 	if (!Strings.equal(this.name, i.imp.module_name)) continue;  // not this module
+		// 	var simple = map[i.imp.field_name];                          // find simple binding
+		// 	if (simple != null) {
+		// 		result[j] = simple;
+		// 		continue;
+		// 	}
+		// 	var closure = closures[i.imp.field_name];
+		// 	if (closure.name != null) {
+		// 		if (last == none) last = tnew(); // lazily allocate a <C> object
+		// 		result[j] = HostFunction.new(closure.name, closure.sig, closure.cnew(last));
+		// 	}
+		// }
 	}
 	def postprocess(error: ErrorGen, instance: Instance) {
 		if (postprocess_f != null) postprocess_f(last, error, instance);
 		last = none;
 	}
-	def init(args: Array<string>, trace: bool, err: ErrorGen) {
-		if (init_f != null) init_f(args, trace, err);
+	def init() {
+		// if (init_f != null) init_f(args, trace, err);
 	}
 	def getMain(instance: Instance) -> (Function, Array<Value>) {
 		if (getMain_f != null) return getMain_f(instance);
